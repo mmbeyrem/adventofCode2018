@@ -35,6 +35,7 @@ namespace adventofcode2018
                 }
             }
         }
+
         [TestMethod]
         public void TestExtractGuardwakes()
         {
@@ -56,6 +57,7 @@ namespace adventofcode2018
                 }
             }
         }
+
         [TestMethod]
         public void TestExtractGuardAsleep()
         {
@@ -77,12 +79,14 @@ namespace adventofcode2018
                 }
             }
         }
+
         [TestMethod]
         public void TestOrderGuardRecordByTime()
         {
             string[] rawRecords = File.ReadAllLines("dataset4.txt");
             var selection = GetGuardsMinutesAsleep(rawRecords);
-            Assert.AreEqual(selection.selectedGuardId*selection.selectedMinute,240);
+            Assert.AreEqual(selection.selectedGuardId * selection.selectedMinute
+                ,240);
         }
 
         private static Selection GetGuardsMinutesAsleep(string[] rawRecords)
@@ -91,24 +95,31 @@ namespace adventofcode2018
             List<GardRecord> allrecords = ExtractGuardRawRecords(rawRecords).ToList();
             var guardSleptMinutes = gardRecordMinuteGenerator.Generate(allrecords);
             int selectedGuardId = SelectGuard(guardSleptMinutes);
-           
-            
+
+
             var selectedMinute = guardSleptMinutes.Where(g => g.Id == selectedGuardId)
                 .Select(s => s.Minute)
                 .GroupBy(m => m, (m, minutes) => new {m, c = minutes.Count()})
                 .OrderByDescending(e => e.c).First();
-            return new Selection{
-                    selectedGuardId=selectedGuardId,
-                    selectedMinute=selectedMinute.m}
-            ;
+            return new Selection
+                {
+                    selectedGuardId = selectedGuardId,
+                    selectedMinute = selectedMinute.m
+                }
+                ;
         }
 
         private static int SelectGuard(List<GuardSleptMinute> guardSleptMinutes)
         {
+            var ddd =
+                guardSleptMinutes
+                    .GroupBy(g => g.Id, (id, minutes) =>
+                        new {id, minutes = minutes.Sum(v => v.Minute)})
+                    .OrderByDescending(e => e.minutes).ToList();
             return guardSleptMinutes
-                .GroupBy(g => g.Id, (i, minutes) => new {i, m = minutes.Sum(v => v.Minute)})
-                .OrderByDescending(e => e.m).First().i;
-
+                .GroupBy(g => g.Id, (id, minutes) =>
+                    new {id, minutes = minutes.Sum(v => v.Minute)})
+                .OrderByDescending(e => e.minutes).First().id;
         }
 
         private static IEnumerable<GardRecord> ExtractGuardRawRecords(string[] rawRecords)
@@ -120,188 +131,5 @@ namespace adventofcode2018
                 yield return factory.Build(rawRecord);
             }
         }
-    }
-
-    internal class Selection 
-    {
-        public int selectedGuardId { get; set; }
-        public int selectedMinute { get; set; }
-    }
-
-    public class GuardSleeepMinute : IEquatable<GuardSleeepMinute>
-    {
-        public int Id { get; set; }
-        public int Minute { get; set; }
-        
-        public bool Equals(GuardSleeepMinute other)
-        {
-            if (ReferenceEquals(null, other)) return false;
-            if (ReferenceEquals(this, other)) return true;
-            return Id == other.Id && Minute == other.Minute;
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != this.GetType()) return false;
-            return Equals((GuardSleeepMinute) obj);
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                return (Id * 397) ^ Minute;
-            }
-        }
-    }
-
-    public class GardRecordMinuteGenerator
-    {
-        readonly List<GuardSleptMinute> GuardSleptMinutes;
-
-        public GardRecordMinuteGenerator()
-        {
-            GuardSleptMinutes = new List<GuardSleptMinute>();
-        }
-        public List<GuardSleptMinute> Generate(IEnumerable<GardRecord> records)
-        {
-            var orders = records.OrderBy(r => r.DateTime).ThenBy(r => r.Status);
-            int gardId = -1;
-            DateTime? sleptDate = null;
-            foreach (GardRecord order in orders)
-            {
-                if (order.Status == GardRecordStatus.Start)
-                {
-                    gardId = order.Id;
-                    sleptDate = null;
-                }
-                else
-                {
-                    order.Id = gardId;
-
-                    if (order.Status == GardRecordStatus.Asleep)
-                    {
-                        sleptDate = order.DateTime;
-                    }
-                    else
-                    {
-                        if (order.Status == GardRecordStatus.WakeUp && sleptDate!= null)
-                        {
-                            ComputeSleepingMinutes(order.Id, sleptDate.Value, order.DateTime);
-                            sleptDate = null;
-                        }
-                    }
-                }
-            }
-
-            return GuardSleptMinutes;
-        }
-
-        private void ComputeSleepingMinutes(int guardId, DateTime SleepingDate, DateTime WakeUpDate)
-        {
-            int i = 0;
-            while (true)
-            {
-                DateTime newDate = SleepingDate.AddMinutes(i);
-                if (WakeUpDate <= newDate) break;
-                i++;
-                GuardSleptMinutes.Add(new GuardSleptMinute { Id =guardId, Minute = newDate.Minute });
-            }
-        }
-    }
-
-    public class GuardSleptMinute
-    {
-        public int Id { get; set; }
-        public int Minute { get; set; }
-    }
-
-    public class GardRecordFactory
-    {
-        private static string AsleepPattern = @"(\d+-\d+-\d+ \d+:\d+)] falls asleep";
-        private static string WakeUpPattern = @"(\d+-\d+-\d+ \d+:\d+)] wakes up";
-        private static string StartPattern = @"(\d+-\d+-\d+ \d+:\d+)] Guard #(\d+) begins shift";
-
-        public GardRecord Build(string input)
-        {
-            return buildStartinGardRecord(input) ??
-                   buildAsleepRecord(input) ??
-                   buildWakeUpRecord(input);
-        }
-        GardRecord buildStartinGardRecord(string input)
-        {
-            var regex = new Regex(StartPattern);
-            foreach (Match match in regex.Matches(input))
-            {
-                if (match.Success)
-                {
-                    return new GardRecord
-                    {
-                        Id = Convert.ToInt32(match.Groups[2].Value),
-                        DateTime = DateTime.ParseExact(match.Groups[1].Value,
-                            "yyyy-MM-dd HH:mm",
-                            CultureInfo.InvariantCulture),
-                        Status = GardRecordStatus.Start
-                    };
-                }
-            }
-
-            return null;
-        }
-        GardRecord buildWakeUpRecord(string input)
-        {
-            var regex = new Regex(WakeUpPattern);
-            foreach (Match match in regex.Matches(input))
-            {
-                if (match.Success)
-                {
-                    return new GardRecord
-                    {
-                        Id = -1,
-                        DateTime = DateTime.ParseExact(match.Groups[1].Value,
-                            "yyyy-MM-dd HH:mm",
-                            CultureInfo.InvariantCulture),
-                        Status = GardRecordStatus.WakeUp
-                    };
-                }
-            }
-
-            return null;
-        }
-        GardRecord buildAsleepRecord(string input)
-        {
-            var regex = new Regex(AsleepPattern);
-            foreach (Match match in regex.Matches(input))
-            {
-                if (match.Success)
-                {
-                    return new GardRecord
-                    {
-                        Id = -1,
-                        DateTime = DateTime.ParseExact(match.Groups[1].Value,
-                            "yyyy-MM-dd HH:mm",
-                            CultureInfo.InvariantCulture),
-                        Status = GardRecordStatus.Asleep
-                    };
-                }
-            }
-
-            return null;
-        }
-    }
-    public class GardRecord
-    {
-        public int Id { get; set; }
-        public DateTime DateTime { get; set; }
-        public GardRecordStatus Status { get; set; }
-    }
-
-    public enum GardRecordStatus
-    {
-        Start =1,
-        WakeUp = 3,
-        Asleep = 2
     }
 }

@@ -57,7 +57,14 @@
     <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GardRecord.cs" />
+    <Compile Include="GardRecordFactory.cs" />
+    <Compile Include="GardRecordMinuteGenerator.cs" />
+    <Compile Include="GardRecordStatus.cs" />
+    <Compile Include="GuardSleeepMinute.cs" />
+    <Compile Include="GuardSleptMinute.cs" />
     <Compile Include="Point.cs" />
+    <Compile Include="Selection.cs" />
     <Compile Include="Spiral.cs" />
     <Compile Include="UnitTestDay4.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
