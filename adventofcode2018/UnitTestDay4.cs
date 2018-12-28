@@ -111,14 +111,10 @@ namespace adventofcode2018
 
         private static int SelectGuard(List<GuardSleptMinute> guardSleptMinutes)
         {
-            var ddd =
-                guardSleptMinutes
-                    .GroupBy(g => g.Id, (id, minutes) =>
-                        new {id, minutes = minutes.Sum(v => v.Minute)})
-                    .OrderByDescending(e => e.minutes).ToList();
             return guardSleptMinutes
-                .GroupBy(g => g.Id, (id, minutes) =>
-                    new {id, minutes = minutes.Sum(v => v.Minute)})
+                .GroupBy(g => g.Id, g => g.Minute,
+                            (id, minutes) =>
+                    new {id, minutes = minutes.Count()})
                 .OrderByDescending(e => e.minutes).First().id;
         }
 
